@@ -40,10 +40,32 @@ def main():
             elif program_m:
                 program_name = program_m.group(1)
             else:
+                # These are the regular rows containing the data we want to
+                # print
                 if row['Grantee Name '] not in ["", "Grantee Name "]:
-                    amount = row['Amount Awarded']
-                    if not (amount.startswith(" $") or amount.startswith(" £")):
-                        print(row)
+                    print(("    " if first else "    ,") +
+                          converted_row(year, program_name, row))
+                    first = False
+        print(";")
+
+
+def converted_row(year, program_name, row):
+    """Convert the given row to a SQL tuple."""
+    amount = row['Amount Awarded']
+    return ( + "(" + ",".join([
+        mysql_quote("Wellcome Trust"),  # donor
+        mysql_quote(donee),  # donee
+        amount,  # amount
+        mysql_quote(donation_date),  # donation_date
+        mysql_quote("day"),  # donation_date_precision
+        mysql_quote("donation log"),  # donation_date_basis
+        mysql_quote("FIXME"),  # cause_area
+        mysql_quote("https://wellcome.ac.uk/sites/default/files/wellcome-grants-awarded-2000-2016.xlsx"),  # url
+        mysql_quote("FIXME"),  # donor_cause_area_url
+        mysql_quote(notes),  # notes
+        mysql_quote(country),  # affected_countries
+        mysql_quote(region),  # affected_regions
+    ]) + ")")
 
 
 if __name__ == "__main__":
