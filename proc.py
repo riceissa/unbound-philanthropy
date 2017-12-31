@@ -63,7 +63,8 @@ def converted_row(year, program_name, row):
     else:
         raise ValueError("We don't know this currency")
 
-    month, day, year2 = row['Date of Approval (listed as month/day/year)'].split('/')
+    month, day, year2 = (row['Date of Approval (listed as month/day/year)']
+                         .split('/'))
     donation_date = year2 + "-" + month + "-" + day
 
     # This is a sanity check. It shows that the year we get from the way the
@@ -77,7 +78,9 @@ def converted_row(year, program_name, row):
     # the 2014 grant to "America's Voice Education Fund (International learning
     # exchange)" is part of the UK program but the "Region" for the grant is
     # the United States. Therefore, the following assertion, if uncommented,
-    # would fail.
+    # would fail. Currently we just use the "Region" column and ignore the
+    # program name but we might want to use the program name in the notes
+    # column, for instance..
     # assert PROG_MAP[program_name] == row['Region'], (program_name, row['Region'])
 
     # FIXME: There is a "Duration of Grant (Months)" column (accessed with
