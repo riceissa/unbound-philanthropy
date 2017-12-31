@@ -23,12 +23,11 @@ def mysql_quote(x):
 def main():
     with open("data.csv", "r") as f:
         reader = csv.DictReader(f)
-        first = True
 
-        print("""insert into donations (donor, donee, amount, donation_date,
-        donation_date_precision, donation_date_basis, cause_area, url,
-        donor_cause_area_url, notes, affected_countries,
-        affected_regions) values""")
+        # We accumulate the USD and GBP grants separately, because the GBP ones
+        # require some extra columns to be printed.
+        usd_grants = []
+        gbp_grants = []
 
         program_name = None
         year = None
@@ -45,10 +44,36 @@ def main():
                 # These are the regular rows containing the data we want to
                 # print
                 if row['Grantee Name '] not in ["", "Grantee Name "]:
-                    print(("    " if first else "    ,") +
-                          converted_row(year, program_name, row))
-                    first = False
+                    amount = row['Amount Awarded'].strip()
+                    if amount.startswith("$"):
+                        usd_grants.append(converted_row(year, program_name, row))
+                    elif amount.startswith("£"):
+                        gbp_grants.append(converted_row(year, program_name, row))
+                    else:
+                        raise ValueError("We don't know this currency")
+
+        # Print USD grants
+        first = True
+        print("""insert into donations (donor, donee, amount, donation_date,
+        donation_date_precision, donation_date_basis, cause_area, url,
+        donor_cause_area_url, notes, affected_countries,
+        affected_regions) values""")
+        for grant in usd_grants:
+            print(("    " if first else "    ,") + grant)
+            first = False
         print(";")
+
+        # Print GBP grants
+        first = True
+        print("""insert into donations (donor, donee, amount, donation_date,
+        donation_date_precision, donation_date_basis, cause_area, url,
+        donor_cause_area_url, notes, affected_countries,
+        affected_regions) values""")
+        for grant in gbp_grants:
+            print(("    " if first else "    ,") + grant)
+            first = False
+        print(";")
+
 
 
 def converted_row(year, program_name, row):
