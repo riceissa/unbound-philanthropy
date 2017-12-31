@@ -4,6 +4,8 @@
 import csv
 import re
 
+PROG_MAP = {"UK": "United Kingdom", "US": "United States"}
+
 def mysql_quote(x):
     '''
     Quote the string x using MySQL quoting rules. If x is the empty string,
@@ -51,20 +53,52 @@ def main():
 
 def converted_row(year, program_name, row):
     """Convert the given row to a SQL tuple."""
-    amount = row['Amount Awarded']
-    return ( + "(" + ",".join([
-        mysql_quote("Wellcome Trust"),  # donor
-        mysql_quote(donee),  # donee
-        amount,  # amount
+
+    amount = row['Amount Awarded'].strip()
+    if amount.startswith("$"):
+        amount = float(amount.replace("$", "").replace(",", ""))
+    elif amount.startswith("£"):
+        # FIXME: CONVERT FROM POUNDS
+        amount = 0.0
+    else:
+        raise ValueError("We don't know this currency")
+
+    month, day, year2 = row['Date of Approval (listed as month/day/year)'].split('/')
+    donation_date = year2 + "-" + month + "-" + day
+
+    # This is a sanity check. It shows that the year we get from the way the
+    # grants are grouped in the spreadsheet is identical to the year we get
+    # from the "Date of Approval" column. Thankfully, this passes for our data.
+    assert year == int(year2), (year, int(year2))
+
+    # FIXME: Technical point about program country vs grantee country.
+    # Unbound Philanthropy has US and UK programs. The program country is *not*
+    # the same thing as the country in which the grantee resides. For example,
+    # the 2014 grant to "America's Voice Education Fund (International learning
+    # exchange)" is part of the UK program but the "Region" for the grant is
+    # the United States. Therefore, the following assertion, if uncommented,
+    # would fail.
+    # assert PROG_MAP[program_name] == row['Region'], (program_name, row['Region'])
+
+    # FIXME: There is a "Duration of Grant (Months)" column (accessed with
+    # row["Duration of Grant (Months)"]) that we don't use at the moment.
+
+    # FIXME: There are "Organization City" and "Organization State" columns
+    # that we don't use at the moment.
+
+    return ("(" + ",".join([
+        mysql_quote("Unbound Philanthropy"),  # donor
+        mysql_quote(row['Grantee Name ']),  # donee
+        str(amount),  # amount
         mysql_quote(donation_date),  # donation_date
         mysql_quote("day"),  # donation_date_precision
         mysql_quote("donation log"),  # donation_date_basis
         mysql_quote("FIXME"),  # cause_area
-        mysql_quote("https://wellcome.ac.uk/sites/default/files/wellcome-grants-awarded-2000-2016.xlsx"),  # url
+        mysql_quote("https://www.unboundphilanthropy.org/who-we-fund"),  # url
         mysql_quote("FIXME"),  # donor_cause_area_url
-        mysql_quote(notes),  # notes
-        mysql_quote(country),  # affected_countries
-        mysql_quote(region),  # affected_regions
+        mysql_quote("FIXME"),  # notes
+        mysql_quote(row['Region']),  # affected_countries
+        mysql_quote("FIXME"),  # affected_regions
     ]) + ")")
 
 
