@@ -61,28 +61,37 @@ def main():
         for grant in usd_grants:
             print(("    " if first else "    ,") + grant)
             first = False
-        print(";")
+        print(";\n")
 
         # Print GBP grants
         first = True
         print("""insert into donations (donor, donee, amount, donation_date,
         donation_date_precision, donation_date_basis, cause_area, url,
         donor_cause_area_url, notes, affected_countries,
-        affected_regions) values""")
+        affected_regions, amount_original_currency, original_currency,
+        currency_conversion_date, currency_conversion_basis) values""")
         for grant in gbp_grants:
             print(("    " if first else "    ,") + grant)
             first = False
         print(";")
 
 
-
 def converted_row(year, program_name, row):
     """Convert the given row to a SQL tuple."""
 
     amount = row['Amount Awarded'].strip()
+    original_amount = []
     if amount.startswith("$"):
         amount = float(amount.replace("$", "").replace(",", ""))
     elif amount.startswith("£"):
+        amount = float(amount.replace("£", "").replace(",", ""))
+        original_amount = [
+            str(amount),  # amount_original_currency
+            mysql_quote('GBP'),  # original_currency
+            mysql_quote("FIXME"),  # currency_conversion_date
+            mysql_quote("FIXME"),  # currency_conversion_basis
+        ]
+
         # FIXME: CONVERT FROM POUNDS
         amount = 0.0
     else:
@@ -127,7 +136,7 @@ def converted_row(year, program_name, row):
         mysql_quote("FIXME"),  # notes
         mysql_quote(row['Region']),  # affected_countries
         mysql_quote("FIXME"),  # affected_regions
-    ]) + ")")
+    ] + original_amount) + ")")
 
 
 if __name__ == "__main__":
