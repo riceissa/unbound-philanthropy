@@ -3,6 +3,9 @@
 
 import csv
 import re
+import requests
+import datetime
+
 
 PROG_MAP = {"UK": "United Kingdom", "US": "United States"}
 
@@ -76,8 +79,20 @@ def main():
         print(";")
 
 
+def gbp_to_usd(gbp_amount, date):
+    """Convert the GBP amount to USD."""
+    r = requests.get("https://api.fixer.io/{}?base=USD".format(date))
+    j = r.json()
+    rate = j["rates"]["GBP"]
+    return gbp_amount / rate
+
+
 def converted_row(year, program_name, row):
     """Convert the given row to a SQL tuple."""
+    month, day, year2 = (row['Date of Approval (listed as month/day/year)']
+                         .split('/'))
+    donation_date = datetime.date(int(year2), int(month),
+                                  int(day)).strftime("%Y-%m-%d")
 
     amount = row['Amount Awarded'].strip()
     original_amount = []
@@ -88,18 +103,13 @@ def converted_row(year, program_name, row):
         original_amount = [
             str(amount),  # amount_original_currency
             mysql_quote('GBP'),  # original_currency
-            mysql_quote("FIXME"),  # currency_conversion_date
-            mysql_quote("FIXME"),  # currency_conversion_basis
+            mysql_quote(donation_date),  # currency_conversion_date
+            mysql_quote("Fixer.io"),  # currency_conversion_basis
         ]
 
-        # FIXME: CONVERT FROM POUNDS
-        amount = 0.0
+        amount = gbp_to_usd(amount, donation_date)
     else:
         raise ValueError("We don't know this currency")
-
-    month, day, year2 = (row['Date of Approval (listed as month/day/year)']
-                         .split('/'))
-    donation_date = year2 + "-" + month + "-" + day
 
     # This is a sanity check. It shows that the year we get from the way the
     # grants are grouped in the spreadsheet is identical to the year we get
