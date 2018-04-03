@@ -6,7 +6,6 @@ import re
 import requests
 import datetime
 
-
 PROG_MAP = {"UK": "United Kingdom", "US": "United States"}
 
 def mysql_quote(x):
@@ -46,6 +45,9 @@ def main():
             else:
                 # These are the regular rows containing the data we want to
                 # print
+                assert not row['Organization City'] or is_single_location(row['Organization City'])
+                assert not row['Organization State'] or is_single_location(row['Organization State'])
+                assert not row['Region'] or is_single_location(row['Region'])
                 if row['Grantee Name '] not in ["", "Grantee Name "]:
                     amount = row['Amount Awarded'].strip()
                     if amount.startswith("$"):
@@ -147,6 +149,10 @@ def converted_row(year, program_name, row):
         mysql_quote(row['Region']),  # affected_countries
         mysql_quote("FIXME"),  # affected_regions
     ] + original_amount) + ")")
+
+
+def is_single_location(location):
+    return bool(re.match(r"[A-Za-z ]+$", location))
 
 
 if __name__ == "__main__":
